@@ -7,7 +7,7 @@ import ro.ionutzbaur.thermostat.datasource.tado.entity.control.TemperatureRespon
 import ro.ionutzbaur.thermostat.service.ThermostatService;
 
 @QuarkusTest
-class ThermostatServiceImplTest {
+class TadoThermostatServiceImplTest {
 
     @Inject
     ThermostatService thermostatService;

@@ -19,5 +19,5 @@ public interface TadoAuthService {
 
     @POST
     @Path("/oauth/token")
-    Uni<OAuth2Token> authenticate(Form xWwwFormUrlEncoded);
+    Uni<OAuth2Token> authorize(Form xWwwFormUrlEncoded);
 }

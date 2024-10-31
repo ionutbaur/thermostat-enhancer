@@ -12,7 +12,9 @@ public interface ThermostatService {
 
     UserDTO getUserInfo();
 
-    List<RoomDTO> getRoomsInfo(Long homeId);
+    List<RoomDTO> getAllRoomsInfo(String homeId, DegreesScale scale);
+
+    RoomDTO getRoomInfo(String homeId, String roomId, DegreesScale scale);
 
     void setTemperature(double degrees, DegreesScale scale);
 }
