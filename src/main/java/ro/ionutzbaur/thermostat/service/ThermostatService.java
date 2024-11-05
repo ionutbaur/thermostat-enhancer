@@ -1,6 +1,8 @@
 package ro.ionutzbaur.thermostat.service;
 
 import ro.ionutzbaur.thermostat.model.RoomDTO;
+import ro.ionutzbaur.thermostat.model.TemperatureDTO;
+import ro.ionutzbaur.thermostat.model.TemperatureRequest;
 import ro.ionutzbaur.thermostat.model.UserDTO;
 import ro.ionutzbaur.thermostat.model.enums.DegreesScale;
 
@@ -16,5 +18,5 @@ public interface ThermostatService {
 
     RoomDTO getRoomInfo(String homeId, String roomId, DegreesScale scale);
 
-    void setTemperature(double degrees, DegreesScale scale);
+    TemperatureDTO setTemperature(TemperatureRequest temperatureRequest);
 }

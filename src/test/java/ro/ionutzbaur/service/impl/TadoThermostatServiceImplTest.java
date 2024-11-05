@@ -3,7 +3,6 @@ package ro.ionutzbaur.service.impl;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
-import ro.ionutzbaur.thermostat.datasource.tado.entity.control.TemperatureResponse;
 import ro.ionutzbaur.thermostat.service.ThermostatService;
 
 @QuarkusTest

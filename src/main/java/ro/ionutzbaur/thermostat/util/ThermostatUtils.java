@@ -1,11 +1,10 @@
 package ro.ionutzbaur.thermostat.util;
 
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class Converter {
+public class ThermostatUtils {
 
-    private Converter() {
+    private ThermostatUtils() {
         // Utility class
     }
 
@@ -13,8 +12,11 @@ public class Converter {
         try {
             return Long.parseLong(str);
         } catch (NumberFormatException e) {
-            //throw new RuntimeException("Tado zoneId must be a number! Provided: " + roomId, e);
             throw exceptionSupplier.get();
         }
+    }
+
+    public static double safeDouble(Double value) {
+        return value == null ? 0d : value;
     }
 }

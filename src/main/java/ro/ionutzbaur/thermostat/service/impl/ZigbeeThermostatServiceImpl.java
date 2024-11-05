@@ -3,6 +3,8 @@ package ro.ionutzbaur.thermostat.service.impl;
 import jakarta.enterprise.context.ApplicationScoped;
 import ro.ionutzbaur.thermostat.interceptor.qualifier.BrandService;
 import ro.ionutzbaur.thermostat.model.RoomDTO;
+import ro.ionutzbaur.thermostat.model.TemperatureDTO;
+import ro.ionutzbaur.thermostat.model.TemperatureRequest;
 import ro.ionutzbaur.thermostat.model.UserDTO;
 import ro.ionutzbaur.thermostat.model.enums.Brand;
 import ro.ionutzbaur.thermostat.model.enums.DegreesScale;
@@ -35,7 +37,7 @@ public class ZigbeeThermostatServiceImpl implements ThermostatService {
     }
 
     @Override
-    public void setTemperature(double degrees, DegreesScale scale) {
+    public TemperatureDTO setTemperature(TemperatureRequest temperatureRequest) {
         throw new RuntimeException("Not yet implemented for Zigbee");
     }
 }

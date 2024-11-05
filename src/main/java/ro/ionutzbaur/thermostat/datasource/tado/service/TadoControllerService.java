@@ -6,7 +6,7 @@ import jakarta.ws.rs.core.HttpHeaders;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.Me;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.control.TemperatureControl;
-import ro.ionutzbaur.thermostat.datasource.tado.entity.control.TemperatureResponse;
+import ro.ionutzbaur.thermostat.datasource.tado.entity.control.TadoTemperatureResponse;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.control.Zone;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.control.ZoneState;
 
@@ -36,8 +36,8 @@ public interface TadoControllerService {
 
     @PUT
     @Path("homes/{homeId}/zones/{zoneId}/overlay")
-    Uni<TemperatureResponse> modifyTemperature(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorization,
-                                               @PathParam("homeId") Long homeId,
-                                               @PathParam("zoneId") Long zoneId,
-                                               TemperatureControl temperatureControl);
+    Uni<TadoTemperatureResponse> modifyTemperature(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorization,
+                                                   @PathParam("homeId") Long homeId,
+                                                   @PathParam("zoneId") Long zoneId,
+                                                   TemperatureControl temperatureControl);
 }

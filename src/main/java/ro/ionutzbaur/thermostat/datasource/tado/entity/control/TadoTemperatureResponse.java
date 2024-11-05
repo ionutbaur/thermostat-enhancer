@@ -2,7 +2,7 @@ package ro.ionutzbaur.thermostat.datasource.tado.entity.control;
 
 import ro.ionutzbaur.thermostat.datasource.tado.entity.control.enums.SettingType;
 
-public class TemperatureResponse {
+public class TadoTemperatureResponse {
 
     private SettingType type;
     private Setting setting;

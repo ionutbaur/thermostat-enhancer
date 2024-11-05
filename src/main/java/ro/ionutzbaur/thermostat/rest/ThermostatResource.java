@@ -9,9 +9,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import ro.ionutzbaur.thermostat.interceptor.filter.BrandFilter;
-import ro.ionutzbaur.thermostat.model.AuthRequest;
-import ro.ionutzbaur.thermostat.model.RoomDTO;
-import ro.ionutzbaur.thermostat.model.UserDTO;
+import ro.ionutzbaur.thermostat.model.*;
 import ro.ionutzbaur.thermostat.model.enums.Brand;
 import ro.ionutzbaur.thermostat.model.enums.DegreesScale;
 import ro.ionutzbaur.thermostat.service.ThermostatService;
@@ -74,6 +72,16 @@ public class ThermostatResource {
                                @QueryParam("degreesScale")
                                @DefaultValue("CELSIUS") DegreesScale scale) {
         return thermostatService.getRoomInfo(homeId, roomId, scale);
+    }
+
+    @Operation(summary = "Modify temperature", description = "Set a new temperature in a room belonging to a specific brand")
+    @Parameter(in = ParameterIn.HEADER, name = BrandFilter.BRAND_ID_HEADER,
+            schema = @Schema(implementation = Brand.class), description = HelperConstants.BRAND_HEADER_DESCRIPTION)
+    @PUT
+    @Path("temperature")
+    @RunOnVirtualThread
+    public TemperatureDTO modifyTemperature(TemperatureRequest temperatureRequest) {
+        return thermostatService.setTemperature(temperatureRequest);
     }
 
 }

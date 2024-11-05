@@ -1,31 +1,24 @@
 package ro.ionutzbaur.thermostat.service.impl;
 
 import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.subscription.Cancellable;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.AuthorizationParams;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.Me;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.OAuth2Token;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.RefreshTokenParams;
-import ro.ionutzbaur.thermostat.datasource.tado.entity.control.InsideTemperature;
-import ro.ionutzbaur.thermostat.datasource.tado.entity.control.Temperature;
-import ro.ionutzbaur.thermostat.datasource.tado.entity.control.Zone;
-import ro.ionutzbaur.thermostat.datasource.tado.entity.control.ZoneState;
+import ro.ionutzbaur.thermostat.datasource.tado.entity.control.*;
+import ro.ionutzbaur.thermostat.datasource.tado.entity.control.enums.Power;
+import ro.ionutzbaur.thermostat.datasource.tado.entity.control.enums.SettingType;
 import ro.ionutzbaur.thermostat.datasource.tado.service.TadoAuthService;
 import ro.ionutzbaur.thermostat.datasource.tado.service.TadoControllerService;
 import ro.ionutzbaur.thermostat.datasource.tado.service.impl.CachedTadoControllerService;
 import ro.ionutzbaur.thermostat.interceptor.qualifier.BrandService;
-import ro.ionutzbaur.thermostat.model.HomeDTO;
-import ro.ionutzbaur.thermostat.model.RoomDTO;
-import ro.ionutzbaur.thermostat.model.TemperatureDTO;
-import ro.ionutzbaur.thermostat.model.UserDTO;
+import ro.ionutzbaur.thermostat.model.*;
 import ro.ionutzbaur.thermostat.model.enums.Brand;
 import ro.ionutzbaur.thermostat.model.enums.DegreesScale;
 import ro.ionutzbaur.thermostat.service.ThermostatService;
-import ro.ionutzbaur.thermostat.util.Converter;
+import ro.ionutzbaur.thermostat.util.ThermostatUtils;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -34,9 +27,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @BrandService(Brand.TADO)
 public class TadoThermostatServiceImpl implements ThermostatService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TadoThermostatServiceImpl.class);
-
-    private Cancellable pollSubscription;
+    private static final double MIN_DEGREES_CELSIUS = 5d;
+    private static final double MIN_DEGREES_FAHRENHEIT = 41d;
 
     private final TadoAuthService tadoAuthService;
     private final TadoControllerService tadoControllerService;
@@ -153,15 +145,29 @@ public class TadoThermostatServiceImpl implements ThermostatService {
     }
 
     @Override
-    public void setTemperature(double degrees, DegreesScale scale) {
-        /*TemperatureResponse temperatureResponse = tadoControllerService.modifyTemperature(
-                        "Bearer " + bearerToken.getAccessToken(),
-                        me.getHomes().getFirst().getId(),
-                        5L,
-                        new TemperatureControl(new Setting(SettingType.HEATING, Power.ON,
-                                setTemperatureByScale(degrees, scale)), new Termination(SettingType.MANUAL)))
+    public TemperatureDTO setTemperature(TemperatureRequest temperatureRequest) {
+        validateTemperatureRequest(temperatureRequest);
+
+        long tadoHomeId = toTadoHomeId(temperatureRequest.homeId());
+        long tadoZoneId = toTadoZoneId(temperatureRequest.roomId());
+
+        Double degrees = temperatureRequest.degrees();
+        Setting setting;
+        boolean isTurnedOn;
+        if (degrees == null) {
+            setting = new Setting(SettingType.HEATING, Power.OFF, null);
+            isTurnedOn = false;
+        } else {
+            setting = new Setting(SettingType.HEATING, Power.ON, buildTemperatureByScale(degrees, temperatureRequest.scale()));
+            isTurnedOn = true;
+        }
+
+        TemperatureControl temperatureControl = new TemperatureControl(setting, new Termination(SettingType.MANUAL));
+        tadoControllerService.modifyTemperature(getAuthorizationHeader(), tadoHomeId, tadoZoneId, temperatureControl)
                 .await()
-                .indefinitely();*/
+                .indefinitely();
+
+        return new TemperatureDTO(degrees, temperatureRequest.scale(), isTurnedOn);
     }
 
     private void refreshToken() {
@@ -184,11 +190,11 @@ public class TadoThermostatServiceImpl implements ThermostatService {
     }
 
     private long toTadoHomeId(String homeId) {
-        return Converter.toLong(homeId, () -> new RuntimeException("Tado homeId must be a number! Provided: " + homeId));
+        return ThermostatUtils.toLong(homeId, () -> new RuntimeException("Tado homeId must be a number! Provided: " + homeId));
     }
 
     private long toTadoZoneId(String roomId) {
-        return Converter.toLong(roomId, () -> new RuntimeException("Tado homeId must be a number! Provided: " + roomId));
+        return ThermostatUtils.toLong(roomId, () -> new RuntimeException("Tado homeId must be a number! Provided: " + roomId));
     }
 
     private RoomDTO getRoomDTO(ZoneState zoneState, Zone zone, DegreesScale scale) {
@@ -200,9 +206,33 @@ public class TadoThermostatServiceImpl implements ThermostatService {
         return new RoomDTO(zone.getName(), zone.getId(), temperatureDTO);
     }
 
+    private void validateTemperatureRequest(TemperatureRequest temperatureRequest) {
+        if (temperatureRequest == null) {
+            throw new IllegalArgumentException("Temperature request must not be null!");
+        }
+
+        if (temperatureRequest.homeId() == null) {
+            throw new IllegalArgumentException("HomeId must not be null!");
+        }
+
+        if (temperatureRequest.roomId() == null) {
+            throw new IllegalArgumentException("RoomId must not be null!");
+        }
+
+        if (temperatureRequest.degrees() != null) {
+            if (temperatureRequest.scale() == DegreesScale.CELSIUS && temperatureRequest.degrees() < MIN_DEGREES_CELSIUS) {
+                throw new IllegalArgumentException("New Tado temperature must be at least " + MIN_DEGREES_CELSIUS + " degrees celsius!");
+            }
+
+            if (temperatureRequest.scale() == DegreesScale.FAHRENHEIT && temperatureRequest.degrees() < MIN_DEGREES_FAHRENHEIT) {
+                throw new IllegalArgumentException("New Tado temperature must be at least " + MIN_DEGREES_FAHRENHEIT + " degrees fahrenheit!");
+            }
+        }
+    }
+
     private TemperatureDTO toTemperatureDTO(InsideTemperature tadoTemperature, DegreesScale scale) {
         if (tadoTemperature == null) {
-            return null;
+            return new TemperatureDTO(null, null, false);
         }
 
         Double degrees;
@@ -212,10 +242,10 @@ public class TadoThermostatServiceImpl implements ThermostatService {
             degrees = tadoTemperature.getFahrenheit();
         }
 
-        return new TemperatureDTO(degrees, scale);
+        return new TemperatureDTO(degrees, scale, true);
     }
 
-    private Temperature setTemperatureByScale(double degrees, DegreesScale scale) {
+    private Temperature buildTemperatureByScale(double degrees, DegreesScale scale) {
         return switch (scale) {
             case CELSIUS -> new Temperature(degrees, null);
             case FAHRENHEIT -> new Temperature(null, degrees);
