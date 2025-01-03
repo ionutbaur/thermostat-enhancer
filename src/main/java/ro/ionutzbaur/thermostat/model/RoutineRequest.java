@@ -62,4 +62,15 @@ public class RoutineRequest {
         this.scale = scale;
     }
 
+    @Override
+    public String toString() {
+        return "RoutineRequest{" +
+                "description='" + description + '\'' +
+                ", routineType=" + routineType +
+                ", homeId='" + homeId + '\'' +
+                ", roomId='" + roomId + '\'' +
+                ", temperature=" + temperature +
+                ", scale=" + scale +
+                '}';
+    }
 }

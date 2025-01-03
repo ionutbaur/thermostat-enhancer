@@ -13,6 +13,7 @@ import ro.ionutzbaur.thermostat.datasource.tado.entity.control.enums.SettingType
 import ro.ionutzbaur.thermostat.datasource.tado.service.TadoAuthService;
 import ro.ionutzbaur.thermostat.datasource.tado.service.TadoControllerService;
 import ro.ionutzbaur.thermostat.datasource.tado.service.impl.CachedTadoControllerService;
+import ro.ionutzbaur.thermostat.exception.TadoException;
 import ro.ionutzbaur.thermostat.interceptor.qualifier.BrandService;
 import ro.ionutzbaur.thermostat.model.*;
 import ro.ionutzbaur.thermostat.model.enums.Brand;
@@ -136,7 +137,7 @@ public class TadoThermostatServiceImpl implements ThermostatService {
                     return zones.stream()
                             .filter(z -> z.getId() == tadoZoneId)
                             .findFirst()
-                            .orElseThrow(() -> new RuntimeException("Tado zone not found for zoneId " + tadoZoneId));
+                            .orElseThrow(() -> new TadoException("Zone not found for zoneId " + tadoZoneId));
                 })
                 .await()
                 .indefinitely();
@@ -172,7 +173,7 @@ public class TadoThermostatServiceImpl implements ThermostatService {
 
     private void refreshToken() {
         if (oAuth2Token == null) {
-            throw new IllegalStateException("User is not authenticated!");
+            throw new TadoException("User is not authenticated!");
         }
 
         RefreshTokenParams refreshTokenParams = new RefreshTokenParams("tado-web-app",
@@ -190,18 +191,22 @@ public class TadoThermostatServiceImpl implements ThermostatService {
     }
 
     private long toTadoHomeId(String homeId) {
-        return ThermostatUtils.toLong(homeId, () -> new RuntimeException("Tado homeId must be a number! Provided: " + homeId));
+        return ThermostatUtils.toLong(homeId, () -> new TadoException("HomeId must be a number! Provided: " + homeId));
     }
 
     private long toTadoZoneId(String roomId) {
-        return ThermostatUtils.toLong(roomId, () -> new RuntimeException("Tado homeId must be a number! Provided: " + roomId));
+        return ThermostatUtils.toLong(roomId, () -> new TadoException("HomeId must be a number! Provided: " + roomId));
     }
 
     private RoomDTO getRoomDTO(ZoneState zoneState, Zone zone, DegreesScale scale) {
-        InsideTemperature tadoTemperature = Optional.ofNullable(zoneState.getSensorDataPoints())
-                .orElseThrow(() -> new RuntimeException("Tado temperature sensor info not available for zone " + zone.getName()))
+        InsideTemperature insideTemperature = Optional.ofNullable(zoneState.getSensorDataPoints())
+                .orElseThrow(() -> new TadoException("Temperature sensor info not available for zone " + zone.getName()))
                 .getInsideTemperature();
-        TemperatureDTO temperatureDTO = toTemperatureDTO(tadoTemperature, scale);
+        Temperature setTemperature = Optional.ofNullable(zoneState.getSetting())
+                .map(Setting::temperature)
+                .orElse(null);
+
+        TemperatureDTO temperatureDTO = toTemperatureDTO(insideTemperature, setTemperature, scale);
 
         return new RoomDTO(zone.getName(), zone.getId(), temperatureDTO);
     }
@@ -230,19 +235,21 @@ public class TadoThermostatServiceImpl implements ThermostatService {
         }
     }
 
-    private TemperatureDTO toTemperatureDTO(InsideTemperature tadoTemperature, DegreesScale scale) {
-        if (tadoTemperature == null) {
+    private TemperatureDTO toTemperatureDTO(InsideTemperature insideTemperature,
+                                            Temperature setTemperature,
+                                            DegreesScale scale) {
+        if (insideTemperature == null) {
             return new TemperatureDTO(null, null, false);
         }
 
         Double degrees;
         if (scale == DegreesScale.CELSIUS) {
-            degrees = tadoTemperature.getCelsius();
+            degrees = insideTemperature.getCelsius();
         } else { // FAHRENHEIT
-            degrees = tadoTemperature.getFahrenheit();
+            degrees = insideTemperature.getFahrenheit();
         }
 
-        return new TemperatureDTO(degrees, scale, true);
+        return new TemperatureDTO(degrees, scale, setTemperature != null);
     }
 
     private Temperature buildTemperatureByScale(double degrees, DegreesScale scale) {

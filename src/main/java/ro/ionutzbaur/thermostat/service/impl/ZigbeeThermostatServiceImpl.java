@@ -1,6 +1,7 @@
 package ro.ionutzbaur.thermostat.service.impl;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import ro.ionutzbaur.thermostat.exception.ZigbeeException;
 import ro.ionutzbaur.thermostat.interceptor.qualifier.BrandService;
 import ro.ionutzbaur.thermostat.model.RoomDTO;
 import ro.ionutzbaur.thermostat.model.TemperatureDTO;
@@ -18,26 +19,26 @@ public class ZigbeeThermostatServiceImpl implements ThermostatService {
 
     @Override
     public boolean authenticate(String username, String password) {
-        throw new RuntimeException("Not yet implemented for Zigbee");
+        throw new ZigbeeException("Not yet implemented for Zigbee");
     }
 
     @Override
     public UserDTO getUserInfo() {
-        throw new RuntimeException("Not yet implemented for Zigbee");
+        throw new ZigbeeException("Not yet implemented for Zigbee");
     }
 
     @Override
     public List<RoomDTO> getAllRoomsInfo(String homeId, DegreesScale scale) {
-        throw new RuntimeException("Not yet implemented for Zigbee");
+        throw new ZigbeeException("Not yet implemented for Zigbee");
     }
 
     @Override
     public RoomDTO getRoomInfo(String homeId, String roomId, DegreesScale scale) {
-        throw new RuntimeException("Not yet implemented for Zigbee");
+        throw new ZigbeeException("Not yet implemented for Zigbee");
     }
 
     @Override
     public TemperatureDTO setTemperature(TemperatureRequest temperatureRequest) {
-        throw new RuntimeException("Not yet implemented for Zigbee");
+        throw new ZigbeeException("Not yet implemented for Zigbee");
     }
 }

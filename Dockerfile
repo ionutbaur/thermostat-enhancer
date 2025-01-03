@@ -7,10 +7,9 @@ WORKDIR /app
 COPY . .
 
 # Download dependencies (this step is cached unless pom.xml changes)
-RUN mvn dependency:go-offline -B
-
+RUN mvn dependency:go-offline -B \
 # Use Maven to extract the artifact version and build the project
-RUN VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version) && \
+&& VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version) && \
     mvn clean install -DskipTests && \
     mv target/thermostat-enhancer-${VERSION}-runner.jar target/app.jar
 

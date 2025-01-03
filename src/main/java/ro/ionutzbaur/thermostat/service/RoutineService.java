@@ -6,6 +6,7 @@ import io.smallrye.mutiny.subscription.Cancellable;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ro.ionutzbaur.thermostat.exception.RoutineException;
 import ro.ionutzbaur.thermostat.model.RoutineDTO;
 import ro.ionutzbaur.thermostat.model.RoutineRequest;
 import ro.ionutzbaur.thermostat.model.TemperatureRequest;
@@ -22,6 +23,7 @@ import java.util.function.Supplier;
 
 import static ro.ionutzbaur.thermostat.util.ThermostatUtils.safeDouble;
 
+// TODO: make it scalable to support multiple users - users should be able to manage routines only for their homes
 @Singleton
 public class RoutineService {
 
@@ -45,7 +47,7 @@ public class RoutineService {
     public RoutineDTO createRoomTemperatureRoutine(RoutineRequest routineRequest) {
         validateRoutineRequest(routineRequest);
         if (routineExists(routineRequest)) {
-            throw new RuntimeException("Routine already exists!");
+            throw new RoutineException("Routine already exists! " + routineRequest);
         }
 
         final String homeId = routineRequest.getHomeId();
