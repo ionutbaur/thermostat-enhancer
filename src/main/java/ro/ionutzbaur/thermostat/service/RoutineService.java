@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import ro.ionutzbaur.thermostat.exception.RoutineException;
 import ro.ionutzbaur.thermostat.model.RoutineDTO;
 import ro.ionutzbaur.thermostat.model.RoutineRequest;
+import ro.ionutzbaur.thermostat.model.TemperatureDTO;
 import ro.ionutzbaur.thermostat.model.TemperatureRequest;
 import ro.ionutzbaur.thermostat.model.enums.DegreesScale;
 import ro.ionutzbaur.thermostat.util.RequestHelper;
@@ -28,6 +29,7 @@ public class RoutineService {
 
     private final List<RoutineDTO> routines;
     private final ConcurrentHashMap<String, Cancellable> pollSubscriptionMap;
+    private final ConcurrentHashMap<String, TemperatureDTO> routineTemperatureMap;
 
     private final ThermostatService thermostatService;
 
@@ -35,6 +37,7 @@ public class RoutineService {
         this.thermostatService = thermostatService;
         this.routines = new ArrayList<>();
         this.pollSubscriptionMap = new ConcurrentHashMap<>();
+        this.routineTemperatureMap = new ConcurrentHashMap<>();
     }
 
     public List<RoutineDTO> getAllRoutines() {
@@ -118,20 +121,36 @@ public class RoutineService {
                                               DegreesScale scale) {
         return ThermostatUtils.startPolling(() -> thermostatService.getRoomInfo(homeId, roomId, scale),
                 room -> {
-                    LOGGER.info("Room temperature is null?: {}", room.temperature() == null);
-                    if (room.temperature() != null && room.temperature().isTurnedOn()) {
-                        LOGGER.info("Room temperature is: {}", room.temperature().degrees());
-                        if (room.temperature().degrees() < safeDouble(cutOffTemperature) && !isRoutineActive(routineId)) {
-                            LOGGER.info("Executing action because room temp is lower than: {} and routine {} is not active", cutOffTemperature, routineId);
-                            TemperatureRequest temperatureRequest = new TemperatureRequest(homeId, roomId, null, null);
+                    TemperatureDTO roomTemperature = room.temperature();
+                    if (roomTemperature == null) {
+                        return; // should never happen
+                    }
 
-                            thermostatService.setTemperature(temperatureRequest);
+                    LOGGER.info("Room temperature is: {}", roomTemperature.degrees());
+                    if (safeDouble(roomTemperature.degrees()) < safeDouble(cutOffTemperature)) {
+                        if (roomTemperature.isTurnedOn()) { // reset and ignore if the room is heated
+                            LOGGER.info("Room is heating. Ignoring room temperature.");
+                            routineTemperatureMap.remove(routineId);
+                        } else {
+                            turnOffHeating(routineId, homeId, roomId, cutOffTemperature);
                         }
                     }
                 });
     }
 
-    private boolean isRoutineActive(String routineId) {
-        return pollSubscriptionMap.containsKey(routineId);
+    private void turnOffHeating(String routineId,
+                                String homeId,
+                                String roomId,
+                                Double cutOffTemperature) {
+        TemperatureDTO setTemperature = routineTemperatureMap.get(routineId);
+        if (setTemperature == null) { // check if the temperature was not already set
+            // TODO: maybe force open window detection instead of setting the temperature to null
+            LOGGER.info("Executing action because room temp is lower than: {} and the temperature has not already been set.", cutOffTemperature);
+            TemperatureRequest temperatureRequest = new TemperatureRequest(homeId, roomId, null, null);
+            routineTemperatureMap.computeIfAbsent(routineId, key -> thermostatService.setTemperature(temperatureRequest)); //turn off heating
+        } else {
+            LOGGER.info("Heating has already been turned off for routineId: {}", routineId);
+        }
     }
+
 }
