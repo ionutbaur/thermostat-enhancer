@@ -1,7 +1,6 @@
 package ro.ionutzbaur.thermostat.service;
 
 import io.quarkus.runtime.util.StringUtil;
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.Cancellable;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -12,14 +11,12 @@ import ro.ionutzbaur.thermostat.model.RoutineRequest;
 import ro.ionutzbaur.thermostat.model.TemperatureRequest;
 import ro.ionutzbaur.thermostat.model.enums.DegreesScale;
 import ro.ionutzbaur.thermostat.util.RequestHelper;
+import ro.ionutzbaur.thermostat.util.ThermostatUtils;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import static ro.ionutzbaur.thermostat.util.ThermostatUtils.safeDouble;
 
@@ -80,16 +77,6 @@ public class RoutineService {
         }
     }
 
-    private <T> Cancellable startPolling(Supplier<T> serviceSupplier, Consumer<T> itemConsumer) {
-        return Multi.createBy()
-                .repeating()
-                .supplier(serviceSupplier)
-                .withDelay(Duration.ofSeconds(5))
-                .indefinitely()
-                .subscribe()
-                .with(itemConsumer, failure -> LOGGER.error("Polling failed!", failure));
-    }
-
     private void validateRoutineRequest(RoutineRequest routineRequest) {
         if (routineRequest == null) {
             throw new IllegalArgumentException("Routine request cannot be null!");
@@ -129,7 +116,7 @@ public class RoutineService {
                                               String roomId,
                                               Double cutOffTemperature,
                                               DegreesScale scale) {
-        return startPolling(() -> thermostatService.getRoomInfo(homeId, roomId, scale),
+        return ThermostatUtils.startPolling(() -> thermostatService.getRoomInfo(homeId, roomId, scale),
                 room -> {
                     LOGGER.info("Room temperature is null?: {}", room.temperature() == null);
                     if (room.temperature() != null && room.temperature().isTurnedOn()) {
