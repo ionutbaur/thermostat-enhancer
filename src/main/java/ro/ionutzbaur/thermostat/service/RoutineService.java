@@ -71,7 +71,7 @@ public class RoutineService {
     public void removeRoutine(String routineId) {
         Cancellable pollSubscription = pollSubscriptionMap.get(routineId);
         if (pollSubscription == null) {
-            LOGGER.info("No active poll subscription to stop for routineId: {}", routineId);
+            LOGGER.warn("No active poll subscription to stop for routineId: {}", routineId);
         } else {
             LOGGER.info("Stopping poll subscription for routineId: {}", routineId);
             pollSubscription.cancel();
@@ -126,13 +126,11 @@ public class RoutineService {
                         return; // should never happen
                     }
 
-                    LOGGER.info("Room temperature is: {}", roomTemperature.degrees());
                     if (safeDouble(roomTemperature.degrees()) < safeDouble(cutOffTemperature)) {
                         if (roomTemperature.isTurnedOn()) { // reset and ignore if the room is heated
-                            LOGGER.info("Room is heating. Ignoring room temperature.");
                             routineTemperatureMap.remove(routineId);
                         } else {
-                            turnOffHeating(routineId, homeId, roomId, cutOffTemperature);
+                            turnOffHeating(routineId, homeId, roomId);
                         }
                     }
                 });
@@ -140,16 +138,14 @@ public class RoutineService {
 
     private void turnOffHeating(String routineId,
                                 String homeId,
-                                String roomId,
-                                Double cutOffTemperature) {
+                                String roomId) {
         TemperatureDTO setTemperature = routineTemperatureMap.get(routineId);
         if (setTemperature == null) { // check if the temperature was not already set
             // TODO: maybe force open window detection instead of setting the temperature to null
-            LOGGER.info("Executing action because room temp is lower than: {} and the temperature has not already been set.", cutOffTemperature);
             TemperatureRequest temperatureRequest = new TemperatureRequest(homeId, roomId, null, null);
             routineTemperatureMap.computeIfAbsent(routineId, key -> thermostatService.setTemperature(temperatureRequest)); //turn off heating
         } else {
-            LOGGER.info("Heating has already been turned off for routineId: {}", routineId);
+            LOGGER.debug("Heating has already been turned off for routineId: {}", routineId);
         }
     }
 
