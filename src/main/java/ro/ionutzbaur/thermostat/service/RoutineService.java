@@ -76,6 +76,7 @@ public class RoutineService {
             LOGGER.info("Stopping poll subscription for routineId: {}", routineId);
             pollSubscription.cancel();
             pollSubscriptionMap.remove(routineId);
+            routineTemperatureMap.remove(routineId);
             routines.removeIf(routine -> routine.id().equals(routineId));
         }
     }
@@ -130,13 +131,13 @@ public class RoutineService {
                         if (roomTemperature.isTurnedOn()) { // reset and ignore if the room is heated
                             routineTemperatureMap.remove(routineId);
                         } else {
-                            turnOffHeating(routineId, homeId, roomId);
+                            stayOffHeating(routineId, homeId, roomId);
                         }
                     }
                 });
     }
 
-    private void turnOffHeating(String routineId,
+    private void stayOffHeating(String routineId,
                                 String homeId,
                                 String roomId) {
         TemperatureDTO setTemperature = routineTemperatureMap.get(routineId);
