@@ -45,6 +45,8 @@ public class RoutineService {
     }
 
     public RoutineDTO createRoomTemperatureRoutine(RoutineRequest routineRequest) {
+        LOGGER.info("Creating room temperature routine: {}", routineRequest);
+
         validateRoutineRequest(routineRequest);
         if (routineExists(routineRequest)) {
             throw new RoutineException("Routine already exists! " + routineRequest);
@@ -128,12 +130,17 @@ public class RoutineService {
                     }
 
                     if (safeDouble(roomTemperature.degrees()) < safeDouble(cutOffTemperature)) {
+                        LOGGER.debug("Room temperature {} is below the cut-off temperature {} for routineId: {}",
+                                safeDouble(roomTemperature.degrees()), safeDouble(cutOffTemperature), routineId);
                         if (roomTemperature.isTurnedOn()) { // reset and ignore if the room is heated
+                            LOGGER.debug("Temperature is turned on for homeId: {}, roomId: {} on routineId: {}. Removing it from map.",
+                                    homeId, roomId, routineId);
                             routineTemperatureMap.remove(routineId);
                         } else {
                             stayOffHeating(routineId, homeId, roomId);
                         }
                     }
+                    LOGGER.debug("Updated routineTemperatureMap: {}", routineTemperatureMap);
                 });
     }
 
@@ -143,6 +150,7 @@ public class RoutineService {
         TemperatureDTO setTemperature = routineTemperatureMap.get(routineId);
         if (setTemperature == null) { // check if the temperature was not already set
             // TODO: maybe force open window detection instead of setting the temperature to null
+            LOGGER.info("Turning off heating for homeId: {}, roomId: {}, routineId: {}", homeId, roomId, routineId);
             TemperatureRequest temperatureRequest = new TemperatureRequest(homeId, roomId, null, null);
             routineTemperatureMap.computeIfAbsent(routineId, key -> thermostatService.setTemperature(temperatureRequest)); //turn off heating
         } else {
