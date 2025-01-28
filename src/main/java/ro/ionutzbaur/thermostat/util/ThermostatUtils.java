@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import ro.ionutzbaur.thermostat.exception.ThermostatException;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -86,21 +88,41 @@ public class ThermostatUtils {
                                                Duration delay,
                                                Duration backOff,
                                                Duration expireIn) {
+        AtomicReference<LocalDateTime> firstFailureTime = new AtomicReference<>();
         return Multi.createBy()
                 .repeating()
                 .supplier(serviceSupplier)
                 .withDelay(delay)
                 .indefinitely()
-                .onFailure(failure -> {
-                    LOGGER.error("Polling failed when calling service supplier!", failure);
-                    return true;
-                })
+                .onFailure(ThermostatUtils::logServiceError)
                 .retry()
-                .withBackOff(backOff)
-                .expireIn(expireIn.toMillis())
+                .withBackOff(backOff, backOff)
+                .until(throwable -> isPollingValid(firstFailureTime, expireIn))
                 .onFailure()
                 .invoke(() -> LOGGER.error("Polling expired. Too many failures and retries in {} minutes.", expireIn.toMinutes()))
                 .subscribe()
-                .with(itemConsumer, failure -> LOGGER.error("Polling failed when consuming the item returned by service!", failure));
+                .with(resetFailureDateAndConsumeItem(firstFailureTime, itemConsumer),
+                        failure -> LOGGER.error("Polling failed when consuming the item returned by service!", failure));
     }
+
+    private static boolean isPollingValid(AtomicReference<LocalDateTime> firstFailureTime, Duration expireIn) {
+        if (firstFailureTime.get() == null) { // no first failure so far, set it
+            firstFailureTime.set(LocalDateTime.now());
+        }
+
+        // check if the polling period is still valid
+        return firstFailureTime.get().plus(expireIn).isAfter(LocalDateTime.now());
+    }
+
+    private static <T> Consumer<T> resetFailureDateAndConsumeItem(AtomicReference<LocalDateTime> firstFailureTime,
+                                                                  Consumer<T> itemConsumer) {
+        firstFailureTime.set(null); // reset the failure date
+        return itemConsumer;
+    }
+
+    private static boolean logServiceError(Throwable failure) {
+        LOGGER.error("Polling failed when calling service supplier!", failure);
+        return true;
+    }
+
 }
