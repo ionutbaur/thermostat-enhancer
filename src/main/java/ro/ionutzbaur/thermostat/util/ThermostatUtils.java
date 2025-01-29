@@ -94,6 +94,8 @@ public class ThermostatUtils {
                 .supplier(serviceSupplier)
                 .withDelay(delay)
                 .indefinitely()
+                .onItem()
+                .invoke(() -> resetFirstFailureTime(firstFailureTime))
                 .onFailure(ThermostatUtils::logServiceError)
                 .retry()
                 .withBackOff(backOff, backOff)
@@ -101,8 +103,11 @@ public class ThermostatUtils {
                 .onFailure()
                 .invoke(() -> LOGGER.error("Polling expired. Too many failures and retries in {} minutes.", expireIn.toMinutes()))
                 .subscribe()
-                .with(resetFailureDateAndConsumeItem(firstFailureTime, itemConsumer),
-                        failure -> LOGGER.error("Polling failed when consuming the item returned by service!", failure));
+                .with(itemConsumer, failure -> LOGGER.error("Polling failed when consuming the item returned by service!", failure));
+    }
+
+    private static void resetFirstFailureTime(AtomicReference<LocalDateTime> firstFailureTime) {
+        firstFailureTime.set(null); // everything fine, reset the first failure time
     }
 
     private static boolean isPollingValid(AtomicReference<LocalDateTime> firstFailureTime, Duration expireIn) {
@@ -112,12 +117,6 @@ public class ThermostatUtils {
 
         // check if the polling period is still valid
         return firstFailureTime.get().plus(expireIn).isAfter(LocalDateTime.now());
-    }
-
-    private static <T> Consumer<T> resetFailureDateAndConsumeItem(AtomicReference<LocalDateTime> firstFailureTime,
-                                                                  Consumer<T> itemConsumer) {
-        firstFailureTime.set(null); // reset the failure date
-        return itemConsumer;
     }
 
     private static boolean logServiceError(Throwable failure) {
