@@ -129,16 +129,14 @@ public class RoutineService {
                         return; // should never happen
                     }
 
-                    if (safeDouble(roomTemperature.degrees()) < safeDouble(cutOffTemperature)) {
+                    if (roomTemperature.isTurnedOn()) { // reset and ignore if the room is heated
+                        LOGGER.debug("Temperature is turned on for homeId: {}, roomId: {} on routineId: {}. Removing it from map.",
+                                homeId, roomId, routineId);
+                        routineTemperatureMap.remove(routineId);
+                    } else if (safeDouble(roomTemperature.degrees()) < safeDouble(cutOffTemperature)) {
                         LOGGER.debug("Room temperature {} is below the cut-off temperature {} for routineId: {}",
                                 safeDouble(roomTemperature.degrees()), safeDouble(cutOffTemperature), routineId);
-                        if (roomTemperature.isTurnedOn()) { // reset and ignore if the room is heated
-                            LOGGER.debug("Temperature is turned on for homeId: {}, roomId: {} on routineId: {}. Removing it from map.",
-                                    homeId, roomId, routineId);
-                            routineTemperatureMap.remove(routineId);
-                        } else {
-                            stayOffHeating(routineId, homeId, roomId);
-                        }
+                        stayOffHeating(routineId, homeId, roomId);
                     }
                     LOGGER.debug("Updated routineTemperatureMap: {}", routineTemperatureMap);
                 });
