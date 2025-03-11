@@ -177,8 +177,8 @@ public class TadoThermostatServiceImpl implements ThermostatService {
             throw new TadoException("User is not authenticated!");
         }
 
-        // refresh token if it's about to expire in less than 1 minute
-        if (oAuth2Token.getExpirationTime().minusMinutes(1).isAfter(LocalDateTime.now())) {
+        // refresh token if expired or if it's about to expire in less than 1 minute
+        if (oAuth2Token.getExpirationTime().minusMinutes(1).isBefore(LocalDateTime.now())) {
             RefreshTokenParams refreshTokenParams = new RefreshTokenParams("tado-web-app",
                     "wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc",
                     "refresh_token",
