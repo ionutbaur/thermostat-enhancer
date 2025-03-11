@@ -21,6 +21,7 @@ import ro.ionutzbaur.thermostat.model.enums.DegreesScale;
 import ro.ionutzbaur.thermostat.service.ThermostatService;
 import ro.ionutzbaur.thermostat.util.ThermostatUtils;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -62,7 +63,7 @@ public class TadoThermostatServiceImpl implements ThermostatService {
 
     @Override
     public UserDTO getUserInfo() {
-        refreshToken();
+        refreshTokenIfNeeded();
 
         Me me = cachedTadoControllerService.getInfoAboutMe(getAuthorizationHeader())
                 .await()
@@ -80,7 +81,7 @@ public class TadoThermostatServiceImpl implements ThermostatService {
     @SuppressWarnings("unchecked")
     public List<RoomDTO> getAllRoomsInfo(String homeId, DegreesScale scale) {
         long tadoHomeId = toTadoHomeId(homeId);
-        refreshToken();
+        refreshTokenIfNeeded();
 
         List<Zone> zones = cachedTadoControllerService.getZones(getAuthorizationHeader(), tadoHomeId)
                 .await()
@@ -120,7 +121,7 @@ public class TadoThermostatServiceImpl implements ThermostatService {
     public RoomDTO getRoomInfo(String homeId, String roomId, DegreesScale scale) {
         long tadoHomeId = toTadoHomeId(homeId);
         long tadoZoneId = toTadoZoneId(roomId);
-        refreshToken();
+        refreshTokenIfNeeded();
 
         Uni<List<Zone>> zonesUni = cachedTadoControllerService.getZones(getAuthorizationHeader(), tadoHomeId);
         Uni<ZoneState> zoneStateUni = tadoControllerService.getZoneState(getAuthorizationHeader(), tadoHomeId, tadoZoneId);
@@ -171,19 +172,22 @@ public class TadoThermostatServiceImpl implements ThermostatService {
         return new TemperatureDTO(degrees, temperatureRequest.scale(), isTurnedOn);
     }
 
-    private void refreshToken() {
+    private void refreshTokenIfNeeded() {
         if (oAuth2Token == null) {
             throw new TadoException("User is not authenticated!");
         }
 
-        RefreshTokenParams refreshTokenParams = new RefreshTokenParams("tado-web-app",
-                "wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc",
-                "refresh_token",
-                "home.user",
-                oAuth2Token.getRefreshToken());
-        oAuth2Token = tadoAuthService.authorize(refreshTokenParams.asXWwwFormUrlEncoded())
-                .await()
-                .indefinitely();
+        // refresh token if it's about to expire in less than 1 minute
+        if (oAuth2Token.getExpirationTime().minusMinutes(1).isAfter(LocalDateTime.now())) {
+            RefreshTokenParams refreshTokenParams = new RefreshTokenParams("tado-web-app",
+                    "wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc",
+                    "refresh_token",
+                    "home.user",
+                    oAuth2Token.getRefreshToken());
+            oAuth2Token = tadoAuthService.authorize(refreshTokenParams.asXWwwFormUrlEncoded())
+                    .await()
+                    .indefinitely();
+        }
     }
 
     private String getAuthorizationHeader() {
