@@ -19,6 +19,7 @@ import ro.ionutzbaur.thermostat.model.*;
 import ro.ionutzbaur.thermostat.model.enums.Brand;
 import ro.ionutzbaur.thermostat.model.enums.DegreesScale;
 import ro.ionutzbaur.thermostat.service.ThermostatService;
+import ro.ionutzbaur.thermostat.service.config.TadoAuthConfig;
 import ro.ionutzbaur.thermostat.util.ThermostatUtils;
 
 import java.time.LocalDateTime;
@@ -32,15 +33,18 @@ public class TadoThermostatServiceImpl implements ThermostatService {
     private static final double MIN_DEGREES_CELSIUS = 5d;
     private static final double MIN_DEGREES_FAHRENHEIT = 41d;
 
+    private final TadoAuthConfig tadoAuthConfig;
     private final TadoAuthService tadoAuthService;
     private final TadoControllerService tadoControllerService;
     private final CachedTadoControllerService cachedTadoControllerService;
 
     private OAuth2Token oAuth2Token;
 
-    public TadoThermostatServiceImpl(@RestClient TadoAuthService tadoAuthService,
+    public TadoThermostatServiceImpl(TadoAuthConfig tadoAuthConfig,
+                                     @RestClient TadoAuthService tadoAuthService,
                                      @RestClient TadoControllerService tadoControllerService,
                                      CachedTadoControllerService cachedTadoControllerService) {
+        this.tadoAuthConfig = tadoAuthConfig;
         this.tadoAuthService = tadoAuthService;
         this.tadoControllerService = tadoControllerService;
         this.cachedTadoControllerService = cachedTadoControllerService;
@@ -48,12 +52,8 @@ public class TadoThermostatServiceImpl implements ThermostatService {
 
     @Override
     public boolean authenticate(String username, String password) {
-        AuthorizationParams authorizationParams = new AuthorizationParams("tado-web-app",
-                "wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc",
-                "password",
-                "home.user",
-                username,
-                password);
+        AuthorizationParams authorizationParams = new AuthorizationParams(tadoAuthConfig.clientId(), tadoAuthConfig.clientSecret(),
+                tadoAuthConfig.authorizationGrantType(), tadoAuthConfig.scope(), username, password);
         oAuth2Token = tadoAuthService.authorize(authorizationParams.asXWwwFormUrlEncoded())
                 .await()
                 .indefinitely();
@@ -179,11 +179,8 @@ public class TadoThermostatServiceImpl implements ThermostatService {
 
         // refresh token if expired or if it's about to expire in less than 30 seconds
         if (oAuth2Token.getExpirationTime().minusSeconds(30).isBefore(LocalDateTime.now())) {
-            RefreshTokenParams refreshTokenParams = new RefreshTokenParams("tado-web-app",
-                    "wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc",
-                    "refresh_token",
-                    "home.user",
-                    oAuth2Token.getRefreshToken());
+            RefreshTokenParams refreshTokenParams = new RefreshTokenParams(tadoAuthConfig.clientId(), tadoAuthConfig.clientSecret(),
+                    tadoAuthConfig.refreshTokenGrantType(), tadoAuthConfig.scope(), oAuth2Token.getRefreshToken());
             oAuth2Token = tadoAuthService.authorize(refreshTokenParams.asXWwwFormUrlEncoded())
                     .await()
                     .indefinitely();

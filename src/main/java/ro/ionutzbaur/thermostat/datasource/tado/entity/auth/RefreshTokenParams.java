@@ -1,15 +1,11 @@
 package ro.ionutzbaur.thermostat.datasource.tado.entity.auth;
 
-import jakarta.ws.rs.core.Form;
-import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 
-public class RefreshTokenParams {
+public final class RefreshTokenParams extends AbstractAuthParams {
 
-    private final String clientId;
-    private final String clientSecret;
-    private final String grantType;
-    private final String scope;
+    private static final String REFRESH_TOKEN_PARAM = "refresh_token";
+
     private final String refreshToken;
 
     public RefreshTokenParams(String clientId,
@@ -17,21 +13,12 @@ public class RefreshTokenParams {
                               String grantType,
                               String scope,
                               String refreshToken) {
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
-        this.grantType = grantType;
-        this.scope = scope;
+        super(clientId, clientSecret, grantType, scope);
         this.refreshToken = refreshToken;
     }
 
-    public Form asXWwwFormUrlEncoded() {
-        MultivaluedMap<String, String> params = new MultivaluedHashMap();
-        params.add("client_id", clientId);
-        params.add("client_secret", clientSecret);
-        params.add("grant_type", grantType);
-        params.add("scope", scope);
-        params.add("refresh_token", refreshToken);
-
-        return RequestUtil.asXWwwFormUrlEncoded(params);
+    @Override
+    protected void addAuthSpecificParams(MultivaluedMap<String, String> params) {
+        params.add(REFRESH_TOKEN_PARAM, refreshToken);
     }
 }
