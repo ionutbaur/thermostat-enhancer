@@ -15,7 +15,7 @@ public class OAuth2Token {
     private String refreshToken;
 
     @JsonProperty("expires_in")
-    private Long expiresInMinutes;
+    private Long expiresInSeconds;
 
     public String getAccessToken() {
         return accessToken;
@@ -25,11 +25,11 @@ public class OAuth2Token {
         return refreshToken;
     }
 
-    public Long getExpiresInMinutes() {
-        return expiresInMinutes;
+    public Long getExpiresInSeconds() {
+        return expiresInSeconds;
     }
 
     public LocalDateTime getExpirationTime() {
-        return LocalDateTime.now().plusMinutes(expiresInMinutes);
+        return LocalDateTime.now().plusSeconds(expiresInSeconds);
     }
 }
