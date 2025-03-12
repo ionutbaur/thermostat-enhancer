@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker stop thermostat-enhancer && docker rm thermostat-enhancer
+docker-compose down -v

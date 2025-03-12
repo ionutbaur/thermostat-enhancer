@@ -1,0 +1,7 @@
+services:
+  thermostat-enhancer:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "9080:8080"
