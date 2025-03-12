@@ -164,6 +164,8 @@ public class TadoThermostatServiceImpl implements ThermostatService {
             isTurnedOn = true;
         }
 
+        refreshTokenIfNeeded();
+
         TemperatureControl temperatureControl = new TemperatureControl(setting, new Termination(SettingType.MANUAL));
         tadoControllerService.modifyTemperature(getAuthorizationHeader(), tadoHomeId, tadoZoneId, temperatureControl)
                 .await()

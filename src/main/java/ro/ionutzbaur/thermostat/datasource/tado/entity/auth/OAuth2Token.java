@@ -17,6 +17,8 @@ public class OAuth2Token {
     @JsonProperty("expires_in")
     private Long expiresInSeconds;
 
+    private final LocalDateTime now = LocalDateTime.now();
+
     public String getAccessToken() {
         return accessToken;
     }
@@ -30,6 +32,6 @@ public class OAuth2Token {
     }
 
     public LocalDateTime getExpirationTime() {
-        return LocalDateTime.now().plusSeconds(expiresInSeconds);
+        return now.plusSeconds(expiresInSeconds);
     }
 }

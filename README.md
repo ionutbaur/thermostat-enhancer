@@ -7,3 +7,6 @@ The app can be easily started/stopped with docker (required as pre-requisite).
 Start the app executing `./run-docker.sh` and stop it with `./stop-docker.sh`.
 
 App will be available at http://localhost:9080 and swagger UI at http://localhost:9080/q/swagger-ui/
+
+PS: Make sure to have a valid account for brand device(s) and to overwrite the default values from `application.properties`
+in an `.env` file located in the root directory.
