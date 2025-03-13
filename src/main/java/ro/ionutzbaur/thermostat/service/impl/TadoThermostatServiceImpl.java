@@ -198,7 +198,7 @@ public class TadoThermostatServiceImpl implements ThermostatService {
     }
 
     private long toTadoZoneId(String roomId) {
-        return ThermostatUtils.toLong(roomId, () -> new TadoException("HomeId must be a number! Provided: " + roomId));
+        return ThermostatUtils.toLong(roomId, () -> new TadoException("RoomId must be a number! Provided: " + roomId));
     }
 
     private RoomDTO getRoomDTO(ZoneState zoneState, Zone zone, DegreesScale scale) {

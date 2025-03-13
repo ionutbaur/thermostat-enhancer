@@ -37,7 +37,7 @@ public class BrandServiceProducer {
      */
     @SuppressWarnings("unchecked")
     protected <T> T produceBrandService(final Class<T> beanType) {
-        LOGGER.debug("Producing tenant service for class: {}", beanType.getName());
+        LOGGER.debug("Producing brand service for class: {}", beanType.getName());
 
         final Brand brandKey = ContextLocals.get(BrandFilter.BRAND_KEY, Brand.defaultBrand());
         Set<Bean<?>> beans = beanManager.getBeans(beanType, new AnnotationLiteral<Any>() {
