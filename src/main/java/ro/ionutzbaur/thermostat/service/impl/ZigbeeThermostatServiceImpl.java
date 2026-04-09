@@ -7,6 +7,8 @@ import ro.ionutzbaur.thermostat.model.RoomDTO;
 import ro.ionutzbaur.thermostat.model.TemperatureDTO;
 import ro.ionutzbaur.thermostat.model.TemperatureRequest;
 import ro.ionutzbaur.thermostat.model.UserDTO;
+import ro.ionutzbaur.thermostat.model.auth.AuthCredentials;
+import ro.ionutzbaur.thermostat.model.auth.AuthInitiateResponse;
 import ro.ionutzbaur.thermostat.model.enums.Brand;
 import ro.ionutzbaur.thermostat.model.enums.DegreesScale;
 import ro.ionutzbaur.thermostat.service.ThermostatService;
@@ -18,7 +20,12 @@ import java.util.List;
 public class ZigbeeThermostatServiceImpl implements ThermostatService {
 
     @Override
-    public boolean authenticate(String username, String password) {
+    public AuthInitiateResponse initiateAuthentication() {
+        return AuthInitiateResponse.credentialsRequired();
+    }
+
+    @Override
+    public boolean authenticate(AuthCredentials credentials) {
         throw new ZigbeeException("Not yet implemented for Zigbee");
     }
 

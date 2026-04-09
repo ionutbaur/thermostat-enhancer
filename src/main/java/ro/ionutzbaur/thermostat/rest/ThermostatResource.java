@@ -8,8 +8,10 @@ import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import ro.ionutzbaur.thermostat.factory.AuthCredentialsFactory;
 import ro.ionutzbaur.thermostat.interceptor.filter.BrandFilter;
 import ro.ionutzbaur.thermostat.model.*;
+import ro.ionutzbaur.thermostat.model.auth.*;
 import ro.ionutzbaur.thermostat.model.enums.Brand;
 import ro.ionutzbaur.thermostat.model.enums.DegreesScale;
 import ro.ionutzbaur.thermostat.service.ThermostatService;
@@ -29,14 +31,31 @@ public class ThermostatResource {
         this.thermostatService = thermostatService;
     }
 
-    @Operation(summary = "Authentication", description = "Authenticate an user in the chosen brand's system")
+    @Operation(summary = "Initiate authentication",
+            description = "Start the authentication flow for the chosen brand. " +
+                    "The response type field indicates what credentials to supply in the confirm step: " +
+                    "DEVICE_AUTH brands return a verification URI the user must visit; " +
+                    "CREDENTIALS_REQUIRED brands expect username/password in the confirm step.")
     @Parameter(in = ParameterIn.HEADER, name = BrandFilter.BRAND_ID_HEADER,
             schema = @Schema(implementation = Brand.class), description = HelperConstants.BRAND_HEADER_DESCRIPTION)
-    @PUT
+    @POST
     @Path("auth")
     @RunOnVirtualThread
-    public Boolean auth(AuthRequest authRequest) {
-        return thermostatService.authenticate(authRequest.username(), authRequest.password());
+    public AuthInitiateResponse initiateAuthentication() {
+        return thermostatService.initiateAuthentication();
+    }
+
+    @Operation(summary = "Confirm authentication",
+            description = "Complete authentication by supplying credentials. " +
+                    "For DEVICE_AUTH brands provide deviceCode; for CREDENTIALS_REQUIRED brands provide username and password.")
+    @Parameter(in = ParameterIn.HEADER, name = BrandFilter.BRAND_ID_HEADER,
+            schema = @Schema(implementation = Brand.class), description = HelperConstants.BRAND_HEADER_DESCRIPTION)
+    @POST
+    @Path("auth/confirm")
+    @RunOnVirtualThread
+    public Boolean authenticate(AuthConfirmRequest request) {
+        AuthCredentials credentials = AuthCredentialsFactory.createCredentials(request);
+        return thermostatService.authenticate(credentials);
     }
 
     @Operation(summary = "User info", description = "Get user information from the chosen brand's system")
