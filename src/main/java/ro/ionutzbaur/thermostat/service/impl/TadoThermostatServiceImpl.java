@@ -3,7 +3,9 @@ package ro.ionutzbaur.thermostat.service.impl;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
-import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.AuthorizationParams;
+import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.DeviceAuthorizationResponse;
+import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.DeviceCodeGrantParams;
+import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.DeviceInitiateParams;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.Me;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.OAuth2Token;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.RefreshTokenParams;
@@ -16,6 +18,9 @@ import ro.ionutzbaur.thermostat.datasource.tado.service.impl.CachedTadoControlle
 import ro.ionutzbaur.thermostat.exception.TadoException;
 import ro.ionutzbaur.thermostat.interceptor.qualifier.BrandService;
 import ro.ionutzbaur.thermostat.model.*;
+import ro.ionutzbaur.thermostat.model.auth.AuthCredentials;
+import ro.ionutzbaur.thermostat.model.auth.AuthInitiateResponse;
+import ro.ionutzbaur.thermostat.model.auth.DeviceCodeCredentials;
 import ro.ionutzbaur.thermostat.model.enums.Brand;
 import ro.ionutzbaur.thermostat.model.enums.DegreesScale;
 import ro.ionutzbaur.thermostat.service.ThermostatService;
@@ -51,10 +56,33 @@ public class TadoThermostatServiceImpl implements ThermostatService {
     }
 
     @Override
-    public boolean authenticate(String username, String password) {
-        AuthorizationParams authorizationParams = new AuthorizationParams(tadoAuthConfig.clientId(), tadoAuthConfig.clientSecret(),
-                tadoAuthConfig.authorizationGrantType(), tadoAuthConfig.scope(), username, password);
-        oAuth2Token = tadoAuthService.authorize(authorizationParams.asXWwwFormUrlEncoded())
+    public AuthInitiateResponse initiateAuthentication() {
+        DeviceInitiateParams params = new DeviceInitiateParams(tadoAuthConfig.clientId(), tadoAuthConfig.scope());
+        DeviceAuthorizationResponse response = tadoAuthService.initiateDeviceAuth(params.asXWwwFormUrlEncoded())
+                .await()
+                .indefinitely();
+
+        return AuthInitiateResponse.deviceAuth(
+                response.getVerificationUri(),
+                response.getVerificationUriComplete(),
+                response.getUserCode(),
+                response.getDeviceCode(),
+                response.getExpiresIn()
+        );
+    }
+
+    @Override
+    public boolean authenticate(AuthCredentials credentials) {
+        if (!(credentials instanceof DeviceCodeCredentials(String deviceCode))) {
+            throw new TadoException("Tado requires device code credentials. Use initiateAuthentication() first.");
+        }
+
+        DeviceCodeGrantParams params = new DeviceCodeGrantParams(
+                tadoAuthConfig.clientId(),
+                tadoAuthConfig.deviceCodeGrantType(),
+                deviceCode
+        );
+        oAuth2Token = tadoAuthService.authorize(params.asXWwwFormUrlEncoded())
                 .await()
                 .indefinitely();
 
@@ -181,8 +209,11 @@ public class TadoThermostatServiceImpl implements ThermostatService {
 
         // refresh token if expired or if it's about to expire in less than 30 seconds
         if (oAuth2Token.getExpirationTime().minusSeconds(30).isBefore(LocalDateTime.now())) {
-            RefreshTokenParams refreshTokenParams = new RefreshTokenParams(tadoAuthConfig.clientId(), tadoAuthConfig.clientSecret(),
-                    tadoAuthConfig.refreshTokenGrantType(), tadoAuthConfig.scope(), oAuth2Token.getRefreshToken());
+            RefreshTokenParams refreshTokenParams = new RefreshTokenParams(
+                    tadoAuthConfig.clientId(),
+                    tadoAuthConfig.refreshTokenGrantType(),
+                    oAuth2Token.getRefreshToken()
+            );
             oAuth2Token = tadoAuthService.authorize(refreshTokenParams.asXWwwFormUrlEncoded())
                     .await()
                     .indefinitely();

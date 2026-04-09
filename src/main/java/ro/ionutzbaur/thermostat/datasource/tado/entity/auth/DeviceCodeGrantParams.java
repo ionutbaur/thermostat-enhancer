@@ -2,24 +2,23 @@ package ro.ionutzbaur.thermostat.datasource.tado.entity.auth;
 
 import jakarta.ws.rs.core.MultivaluedMap;
 
-public final class RefreshTokenParams extends AbstractAuthParams {
-
-    private static final String REFRESH_TOKEN_PARAM = "refresh_token";
+public final class DeviceCodeGrantParams extends AbstractAuthParams {
 
     private static final String GRANT_TYPE_PARAM = "grant_type";
+    private static final String DEVICE_CODE_PARAM = "device_code";
 
     private final String grantType;
-    private final String refreshToken;
+    private final String deviceCode;
 
-    public RefreshTokenParams(String clientId, String grantType, String refreshToken) {
+    public DeviceCodeGrantParams(String clientId, String grantType, String deviceCode) {
         super(clientId);
         this.grantType = grantType;
-        this.refreshToken = refreshToken;
+        this.deviceCode = deviceCode;
     }
 
     @Override
     protected void addAuthSpecificParams(MultivaluedMap<String, String> params) {
         params.add(GRANT_TYPE_PARAM, grantType);
-        params.add(REFRESH_TOKEN_PARAM, refreshToken);
+        params.add(DEVICE_CODE_PARAM, deviceCode);
     }
 }

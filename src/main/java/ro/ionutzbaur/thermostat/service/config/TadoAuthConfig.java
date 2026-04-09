@@ -7,9 +7,7 @@ public interface TadoAuthConfig {
 
     String clientId();
 
-    String clientSecret();
-
-    String authorizationGrantType();
+    String deviceCodeGrantType();
 
     String refreshTokenGrantType();
 

@@ -4,13 +4,17 @@ import ro.ionutzbaur.thermostat.model.RoomDTO;
 import ro.ionutzbaur.thermostat.model.TemperatureDTO;
 import ro.ionutzbaur.thermostat.model.TemperatureRequest;
 import ro.ionutzbaur.thermostat.model.UserDTO;
+import ro.ionutzbaur.thermostat.model.auth.AuthCredentials;
+import ro.ionutzbaur.thermostat.model.auth.AuthInitiateResponse;
 import ro.ionutzbaur.thermostat.model.enums.DegreesScale;
 
 import java.util.List;
 
 public interface ThermostatService {
 
-    boolean authenticate(String username, String password);
+    AuthInitiateResponse initiateAuthentication();
+
+    boolean authenticate(AuthCredentials credentials);
 
     UserDTO getUserInfo();
 
