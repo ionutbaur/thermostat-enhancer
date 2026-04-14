@@ -1,6 +1,7 @@
 package ro.ionutzbaur.thermostat.util;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.Cancellable;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
@@ -9,6 +10,8 @@ import ro.ionutzbaur.thermostat.exception.ThermostatException;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -16,6 +19,11 @@ import java.util.function.Supplier;
 public class ThermostatUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ThermostatUtils.class);
+
+    /**
+     * A reusable executor for virtual threads, which is used to execute I/O requests.
+     */
+    public static final Executor VIRTUAL_THREAD_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
 
     private static final Duration POLLING_DELAY = Duration.ofSeconds(
             ConfigProvider.getConfig()
@@ -91,10 +99,13 @@ public class ThermostatUtils {
         AtomicReference<LocalDateTime> firstFailureTime = new AtomicReference<>();
         return Multi.createBy()
                 .repeating()
-                .supplier(serviceSupplier)
+                .uni(
+                        () -> Uni.createFrom()
+                                .item(serviceSupplier)
+                                .runSubscriptionOn(VIRTUAL_THREAD_EXECUTOR) // repeat calling the service on a Virtual Thread
+                )
                 .withDelay(delay)
                 .indefinitely()
-                .onItem()
                 .invoke(() -> resetFirstFailureTime(firstFailureTime))
                 .onFailure(ThermostatUtils::logServiceError)
                 .retry()

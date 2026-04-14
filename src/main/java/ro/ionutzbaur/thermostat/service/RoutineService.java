@@ -1,5 +1,6 @@
 package ro.ionutzbaur.thermostat.service;
 
+import io.quarkus.arc.ClientProxy;
 import io.quarkus.runtime.util.StringUtil;
 import io.smallrye.mutiny.subscription.Cancellable;
 import jakarta.inject.Singleton;
@@ -57,7 +58,12 @@ public class RoutineService {
 
         final String routineId = RequestHelper.getBrand().name().toLowerCase() + "-" + UUID.randomUUID();
         pollSubscriptionMap.computeIfAbsent(routineId,
-                key -> roomTemperaturePoller(key, homeId, roomId, routineRequest.getTemperature(), routineRequest.getScale()));
+                key -> {
+                    // use concrete contextual instance to avoid Context Locals access issues
+                    ThermostatService brandContextService = ClientProxy.unwrap(thermostatService);
+                    LOGGER.debug("Using the concrete brand thermostat service: {}", brandContextService);
+                    return roomTemperaturePoller(key, homeId, roomId, routineRequest.getTemperature(), routineRequest.getScale(), brandContextService);
+                });
         RoutineDTO routineDTO = new RoutineDTO(routineId, routineRequest.getDescription(),
                 routineRequest.getRoutineType(), homeId, roomId, RequestHelper.getBrand());
         routines.add(routineDTO);
@@ -121,8 +127,9 @@ public class RoutineService {
                                               String homeId,
                                               String roomId,
                                               Double cutOffTemperature,
-                                              DegreesScale scale) {
-        return ThermostatUtils.startPolling(() -> thermostatService.getRoomInfo(homeId, roomId, scale),
+                                              DegreesScale scale,
+                                              ThermostatService brandContextService) {
+        return ThermostatUtils.startPolling(() -> brandContextService.getRoomInfo(homeId, roomId, scale),
                 room -> {
                     TemperatureDTO roomTemperature = room.temperature();
                     if (roomTemperature == null) {
@@ -136,7 +143,7 @@ public class RoutineService {
                     } else if (safeDouble(roomTemperature.degrees()) < safeDouble(cutOffTemperature)) {
                         LOGGER.debug("Room temperature {} is below the cut-off temperature {} for routineId: {}",
                                 safeDouble(roomTemperature.degrees()), safeDouble(cutOffTemperature), routineId);
-                        stayOffHeating(routineId, homeId, roomId);
+                        stayOffHeating(routineId, homeId, roomId, brandContextService);
                     }
                     LOGGER.debug("Updated routineTemperatureMap: {}", routineTemperatureMap);
                 });
@@ -144,13 +151,14 @@ public class RoutineService {
 
     private void stayOffHeating(String routineId,
                                 String homeId,
-                                String roomId) {
+                                String roomId,
+                                ThermostatService brandContextService) {
         TemperatureDTO setTemperature = routineTemperatureMap.get(routineId);
         if (setTemperature == null) { // check if the temperature was not already set
             // TODO: maybe force open window detection instead of setting the temperature to null
             LOGGER.info("Turning off heating for homeId: {}, roomId: {}, routineId: {}", homeId, roomId, routineId);
             TemperatureRequest temperatureRequest = new TemperatureRequest(homeId, roomId, null, null);
-            routineTemperatureMap.computeIfAbsent(routineId, key -> thermostatService.setTemperature(temperatureRequest)); //turn off heating
+            routineTemperatureMap.computeIfAbsent(routineId, key -> brandContextService.setTemperature(temperatureRequest)); //turn off heating
         } else {
             LOGGER.debug("Heating has already been turned off for routineId: {}", routineId);
         }
