@@ -1,15 +1,19 @@
 package ro.ionutzbaur.thermostat.datasource.tado.service;
 
+import io.quarkus.rest.client.reactive.ClientExceptionMapper;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.Me;
-import ro.ionutzbaur.thermostat.datasource.tado.entity.control.TemperatureControl;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.control.TadoTemperatureResponse;
+import ro.ionutzbaur.thermostat.datasource.tado.entity.control.TemperatureControl;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.control.Zone;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.control.ZoneState;
+import ro.ionutzbaur.thermostat.util.RestClientErrorHandler;
 
+import java.lang.reflect.Method;
 import java.util.List;
 
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -40,4 +44,9 @@ public interface TadoControllerService {
                                                    @PathParam("homeId") Long homeId,
                                                    @PathParam("zoneId") Long zoneId,
                                                    TemperatureControl temperatureControl);
+
+    @ClientExceptionMapper
+    static WebApplicationException toException(Response response, Method method) {
+        return RestClientErrorHandler.toException(response, method);
+    }
 }
