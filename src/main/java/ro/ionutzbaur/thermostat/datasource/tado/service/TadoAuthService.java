@@ -1,14 +1,16 @@
 package ro.ionutzbaur.thermostat.datasource.tado.service;
 
+import io.quarkus.rest.client.reactive.ClientExceptionMapper;
 import io.smallrye.mutiny.Uni;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Form;
+import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.DeviceAuthorizationResponse;
 import ro.ionutzbaur.thermostat.datasource.tado.entity.auth.OAuth2Token;
+import ro.ionutzbaur.thermostat.util.RestClientErrorHandler;
+
+import java.lang.reflect.Method;
 
 import static jakarta.ws.rs.core.MediaType.APPLICATION_FORM_URLENCODED;
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -25,4 +27,9 @@ public interface TadoAuthService {
     @POST
     @Path("/oauth2/token")
     Uni<OAuth2Token> authorize(Form xWwwFormUrlEncoded);
+
+    @ClientExceptionMapper
+    static WebApplicationException toException(Response response, Method method) {
+        return RestClientErrorHandler.toException(response, method);
+    }
 }
