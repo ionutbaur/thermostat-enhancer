@@ -46,6 +46,7 @@ public class RoutineResource {
 
     @Operation(summary = "Remove all routines", description = "Remove all room temperature routines")
     @DELETE
+    @RunOnVirtualThread
     public void removeAllRoutines() {
         routineService.removeAllRoutines();
     }
@@ -53,6 +54,7 @@ public class RoutineResource {
     @Operation(summary = "Remove routine", description = "Remove a room temperature routine by id")
     @DELETE
     @Path("{routineId}")
+    @RunOnVirtualThread
     public void removeRoutine(@PathParam("routineId") String routineId) {
         routineService.removeRoutine(routineId);
     }

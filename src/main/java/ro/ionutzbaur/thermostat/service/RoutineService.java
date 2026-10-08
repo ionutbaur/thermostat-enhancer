@@ -3,7 +3,7 @@ package ro.ionutzbaur.thermostat.service;
 import io.quarkus.arc.ClientProxy;
 import io.quarkus.runtime.util.StringUtil;
 import io.smallrye.mutiny.subscription.Cancellable;
-import jakarta.inject.Singleton;
+import jakarta.enterprise.context.ApplicationScoped;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ro.ionutzbaur.thermostat.exception.RoutineException;
@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static ro.ionutzbaur.thermostat.util.ThermostatUtils.safeDouble;
 
 // TODO: make it scalable to support multiple users - users should be able to manage routines only for their homes
-@Singleton
+@ApplicationScoped
 public class RoutineService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RoutineService.class);
