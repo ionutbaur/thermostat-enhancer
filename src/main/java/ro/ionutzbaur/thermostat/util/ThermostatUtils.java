@@ -23,7 +23,11 @@ public class ThermostatUtils {
     /**
      * A reusable executor for virtual threads, which is used to execute I/O requests.
      */
-    public static final Executor VIRTUAL_THREAD_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
+    public static final Executor VIRTUAL_THREAD_EXECUTOR = Executors.newThreadPerTaskExecutor(
+            Thread.ofVirtual()
+                    .name("thermostat-enhancer-virtual-thread-", 0)
+                    .factory()
+    );
 
     private static final Duration POLLING_DELAY = Duration.ofSeconds(
             ConfigProvider.getConfig()
