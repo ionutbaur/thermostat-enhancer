@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM maven:3.9.8-eclipse-temurin-21 AS build
+FROM maven:3.10.0-eclipse-temurin-25 AS build
 
 LABEL org.opencontainers.image.authors="Ionut Baur"
 
@@ -13,7 +13,7 @@ RUN mvn dependency:go-offline -B \
     mvn clean install -DskipTests && \
     mv target/thermostat-enhancer-${VERSION}-runner.jar target/app.jar
 
-FROM eclipse-temurin:21-jdk
+FROM eclipse-temurin:25-jdk
 
 LABEL org.opencontainers.image.authors="Ionut Baur"
 
